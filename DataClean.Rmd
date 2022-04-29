@@ -1,0 +1,24 @@
+---
+title: "Data Cleaning"
+author: "Julia Lee"
+date: "4/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+pbp_2021 <- read_csv("pbp-2021.csv")
+names(pbp_2021)
+as.numeric(pbp_2021$Minute)
+as.numeric(pbp_2021$Second)
+pbp<-pbp_2021%>%
+mutate(m=Second/60) %>%
+mutate(minute = Minute + m)
+
+```
