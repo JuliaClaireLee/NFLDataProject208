@@ -1,0 +1,260 @@
+---
+title: "Classifier Methods"
+author: "Julia Lee"
+date: "5/9/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(devtools)
+source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+library(clusterGeneration)
+#> Loading required package: MASS
+library(tictoc)
+#install.packages("nflreadr")
+library(nflreadr)
+library(nflfastR)
+library(readr)
+library(dplyr)
+library(MASS)
+library(dplyr)
+library(readr)
+library(nloptr)
+library(e1071)
+library(ISLR)
+library(caret)
+library(nnet)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(tree)
+library(class)
+library(randomForest)
+library(readr)
+library(readxl)
+library(wordcloud)
+library(ggplot2)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(e1071)
+library(class)
+library(ISLR)
+library(dplyr)
+library(nnet)
+```
+
+```{r}
+train <- read_csv("train.csv")
+train <- na.omit(train)
+test <- read_csv("test.csv")
+test <- na.omit(test)
+train1<- train %>%
+  summarise(Team ,Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint,favorby  , yards ,N, IsHome, score, roof, surface,  RatioPasstoRush) %>%
+  mutate(Team=ifelse(Team == "OAK", "LV" ,Team))%>%
+  mutate(surface=ifelse(surface == "grass","grass", "artificial"))
+train1$DidWin<-as.factor(train1$DidWin)
+test1<- test %>%
+  summarise(Team,Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint, favorby , yards ,N, IsHome, score, roof, surface,  RatioPasstoRush) %>%
+  mutate(Team=ifelse(Team == "SD", "LAC" ,Team)) %>%
+  mutate(Team=ifelse(Team == "OAK", "LV" ,Team))%>%
+  mutate(surface=ifelse(surface == "grass","grass", "artificial"))
+test1$DidWin<-as.factor(test1$DidWin)
+```
+
+
+
+```{r}
+fittree<-rpart(DidWin~.,train1,method="class")
+rpart.plot(fittree,extra=104)
+```
+
+```{r}
+
+```
+
+```{r}
+set.seed(10064)
+mod1<-tree(DidWin~.,data=train1, method = "class")
+cv_mod1 = cv.tree(mod1)
+cbind(cv_mod1$size, cv_mod1$dev)
+plot(cv_mod1$size, cv_mod1$dev, type = 'b')
+
+m2<-prune.tree(mod1, best=13)
+plot(m2)
+text(m2,pretty = 3)
+```
+we found that the the tree with the lowest cross-validation error rate is the tree with 8 terminal nodes. 
+
+
+
+```{r}
+tree_pred = predict(fittree, test1, type="class")
+table(tree_pred, test1$DidWin)
+
+```
+
+```{r}
+(132+163)/1530
+```
+
+
+```{r}
+set.seed(199)
+m1 <- randomForest(
+  formula = DidWin~.,
+  data    = train1,
+   mtry = 20, importance = TRUE)
+
+random_forest_estimate = predict(m1, 
+                                 newdata = test1)
+
+table(random_forest_estimate, test1$DidWin)
+(122+138)/1530
+```
+
+
+```{r}
+importance(m1)
+varImpPlot(m1)
+```
+```{r}
+directionTr<-train1$DidWin
+directionTst<-test1$DidWin
+knn_pred<-knn(train1,test1, directionTr,  k = 5)
+table(knn_pred,directionTst)
+
+```
+
+```{r}
+```
+
+
+
+## 6. Navie Bayes   
+
+```{r}
+naivebayes.fit<-naiveBayes(as.factor(DidWin)~.,train1)
+print(naivebayes.fit)
+# Make predictions on training data set and compute confusion matrix
+predictions<-predict(naivebayes.fit,test1$DidWin)
+```
+
+```{r}
+confusion<-table(predictions,test1$DidWin)
+colnames(confusion) <- c("True=0","True=1")
+rownames(confusion) <- c("Predicted=0","Predicted=1")
+print(as.table(confusion))
+```
+
+
+```{r}
+(255)/512
+```
+Using Navie-bayes classifier, we misclassify at about a rate of 49.8%.
+
+
+
+# Logistic 
+
+```{r}
+logitmodel<-glm(DidWin~.,data=train1,family="binomial")
+```
+
+
+```{r}
+
+glm_probs <- data.frame(probs = predict(logitmodel, 
+                                       newdata = test1, type="response"))
+glm_pred <- glm_probs %>%
+  mutate(pred = ifelse(probs>.5, 1, 0))
+
+glm_pred <- cbind(test1, glm_pred)
+```
+
+```{r}
+glm_pred$DidWin<-test1$DidWin
+glm_pred2<-as.data.frame(glm_pred)
+FalsePred<-glm_pred2 %>%
+  mutate(s = ifelse(DidWin == pred , "yes", "No")) %>%
+  filter(s == "No")
+
+roc(logitmodel)
+```
+
+```{r}
+(nrow(FalsePred)/512)*100
+```
+
+The Logistic Classifier gives us a misclassification rate of 19.14062%
+
+# QDA and LDA
+```{r}
+model_LDA = lda(DidWin~., data = train1)
+predictions_LDA = data.frame(predict(model_LDA, test1))
+
+predictions_LDA = cbind(test, predictions_LDA)
+
+LDA<-predictions_LDA %>%
+  count(class, DidWin) %>%
+  kbl(caption = "LDA prediction Table") %>%
+  kable_styling()
+LDA
+predictions_LDA %>%
+  summarize(score = mean(class == DidWin))
+```
+0.86.91406	
+
+```{r}
+model_QDA = qda(DidWin~., data = train1)
+model_QDA 
+```
+
+```{r}
+predictions_QDA = data.frame(predict(model_QDA, test1))
+
+predictions_QDA = cbind(test, predictions_QDA)
+
+predictions_QDA %>%
+  count(class, DidWin)
+```
+
+```{r}
+predictions_QDA %>%
+  summarize(score = mean(class == DidWin))
+```
+Interestingly, the QDA predictions are accurate almost 81.64% or misclassifies about  18.36% of the time.
+
+# nnet
+
+```{r, results='hide', echo=FALSE, warning=FALSE message=F}
+set.seed(109)
+minval<-1e10
+lam<-0.2
+for (k in 1:100) {
+  init<-runif(12,-0.7,0.7)
+fitnn<-nnet(class.ind(DidWin)~.,train1,size=2,decay=lam,entropy=TRUE,maxit=5000,wts=init)
+ if (fitnn$value<minval) {
+minval<-fitnn$value
+fitnn.save<-fitnn
+} 
+}
+```
+
+```{r,  results='hide', echo=FALSE, warning=FALSE message=F}
+k<-test1[,-3]
+class.predict<- predict(fitnn.save,k,type="class") 
+```
+
+```{r,  results='hide', echo=FALSE, warning=FALSE message=F}
+correct<-(test1$DidWin==class.predict)
+n<-length(correct[correct== TRUE])
+(1-(n/512))*100
+```
+
+```{r}
+plot.nnet(fitnn.save)
+
+```

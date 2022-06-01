@@ -1,24 +1,424 @@
 ---
-title: "Data Cleaning"
+title: "Data Clean Appendix"
 author: "Julia Lee"
-date: "4/19/2022"
-output: html_document
+output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE,warning=FALSE,message=FALSE,results='hide'}
 knitr::opts_chunk$set(echo = TRUE)
 library(readr)
 library(dplyr)
 library(tidyverse)
+library(nflfastR)
 ```
 
-```{r}
+# Training Data Set Prep
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
 pbp_2021 <- read_csv("pbp-2021.csv")
 names(pbp_2021)
 as.numeric(pbp_2021$Minute)
 as.numeric(pbp_2021$Second)
 pbp<-pbp_2021%>%
-mutate(m=Second/60) %>%
-mutate(minute = Minute + m)
-
+mutate(m= ((Minute*60)+Second)/60) %>%
+mutate(TimeLeftInQ=m) %>%
+  filter(IsPenalty == 0) %>%
+mutate(TimeinGame = ifelse(Quarter == 1, 15-m,ifelse(Quarter == 2, 30-m,ifelse(Quarter == 3, 45-m, 60-m))))
 ```
+
+```{r,warning=FALSE,message=FALSE,results='hide',warning=FALSE,message=FALSE,results='hide'}
+pbp_2021$Rush<-as.numeric(pbp_2021$IsRush)
+pbp_2021$GOff<-paste(pbp_2021$GameDate, pbp_2021$OffenseTeam)
+game<-pbp_2021 %>%
+  group_by(GameDate,OffenseTeam,DefenseTeam, GameId) %>%
+  summarise(Rushes=sum(Rush),Passes=sum(IsPass), win=sum(TeamWin), FirstDown=sum(SeriesFirstDown), sacks=sum(IsSack),Interception=sum(IsInterception), Fumbles=sum(IsFumble),incomplete=sum(IsIncomplete), TDs=sum(IsTouchdown),twopoint = sum(IsTwoPointConversionSuccessful), yards = sum(Yards), N=n())
+
+mean(game$FirstDown)
+  
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+games <- read_csv("http://www.habitatring.com/games.csv")
+g2021<-games %>%
+  filter(season == 2021)
+ g2021$GameId <- g2021$old_game_id 
+game21 <- game %>%
+  full_join(g2021, by = "GameId") 
+
+
+game21<-game21 %>%
+  mutate(S=ifelse(OffenseTeam == home_team, 1, 0)) %>%
+ mutate(DidWin = ifelse(S == 1 & result > 0 , 1, ifelse(S == 0 & result < 0, 1, 0) ) )
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game21$IsHome<-game21$S
+
+game21 <- game21 %>%
+  mutate(score = ifelse(IsHome == 1, home_score , away_score)) %>%
+    mutate(QB = ifelse(IsHome == 1, home_qb_name,  away_qb_name)) %>%
+  mutate(coach = ifelse(IsHome == 1, home_coach,  away_coach))%>%
+   mutate(Team = ifelse(IsHome == 1, home_team,  away_team)) %>%
+  mutate(favorby = ifelse(IsHome == 1, spread_line,   spread_line*-1)) %>%
+  mutate(opponent = ifelse(IsHome == 1, away_team,   home_team)) %>%
+    mutate(opponentScore = ifelse(IsHome == 1, away_score,   home_score)) %>%
+  mutate(RatioPasstoRush = Passes/Rushes)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_small<- game21 %>%
+  group_by(GameDate, Team, opponent) %>%
+  summarise(Team, Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score, favorby, QB, coach, roof, surface,gametime, week, weekday, GameDate, gametime, RatioPasstoRush, opponentScore)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_clean<-game_small %>%
+   na.omit()
+```
+
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2020 <- read_csv("pbp-2020.csv")
+names(pbp_2020)
+as.numeric(pbp_2020$Minute)
+as.numeric(pbp_2020$Second)
+pbp<-pbp_2020%>%
+mutate(m= ((Minute*60)+Second)/60) %>%
+mutate(TimeLeftInQ=m) %>%
+  filter(IsPenalty == 0) %>%
+mutate(TimeinGame = ifelse(Quarter == 1, 15-m,ifelse(Quarter == 2, 30-m,ifelse(Quarter == 3, 45-m, 60-m))))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2020$Rush<-as.numeric(pbp_2020$IsRush)
+pbp_2020$GOff<-paste(pbp_2020$GameDate, pbp_2020$OffenseTeam)
+game<-pbp_2020 %>%
+  group_by(GameDate,OffenseTeam,DefenseTeam, GameId) %>%
+  summarise(Rushes=sum(Rush),Passes=sum(IsPass), win=sum(TeamWin), FirstDown=sum(SeriesFirstDown), sacks=sum(IsSack),Interception=sum(IsInterception), Fumbles=sum(IsFumble),incomplete=sum(IsIncomplete), TDs=sum(IsTouchdown),twopoint = sum(IsTwoPointConversionSuccessful), yards = sum(Yards), N=n())
+
+mean(game$FirstDown)
+  
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+games <- read_csv("http://www.habitatring.com/games.csv")
+g2020<-games %>%
+  filter(season == 2020)
+ g2020$GameId <- g2020$old_game_id 
+game20 <- game %>%
+  full_join(g2020, by = "GameId") 
+
+
+game20<-game20 %>%
+  mutate(S=ifelse(OffenseTeam == home_team, 1, 0)) %>%
+ mutate(DidWin = ifelse(S == 1 & result > 0 , 1, ifelse(S == 0 & result < 0, 1, 0) ) )
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game20$IsHome<-game20$S
+
+game20 <- game20 %>%
+  mutate(score = ifelse(IsHome == 1, home_score , away_score)) %>%
+    mutate(QB = ifelse(IsHome == 1, home_qb_name,  away_qb_name)) %>%
+  mutate(coach = ifelse(IsHome == 1, home_coach,  away_coach))%>%
+   mutate(Team = ifelse(IsHome == 1, home_team,  away_team)) %>%
+  mutate(favorby = ifelse(IsHome == 1, spread_line,   spread_line*-1)) %>%
+  mutate(opponent = ifelse(IsHome == 1, away_team,   home_team)) %>%
+    mutate(opponentScore = ifelse(IsHome == 1, away_score,   home_score)) %>%
+  mutate(RatioPasstoRush = Passes/Rushes)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_small2<- game20 %>%
+  group_by(GameDate, Team, opponent) %>%
+  summarise(Team, Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score,favorby, QB, coach, roof, surface,gametime, week, weekday, GameDate, gametime, RatioPasstoRush,opponentScore)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_clean_2<-game_small2 %>%
+   na.omit()
+x<-as.data.frame(rbind(game_clean_2, game_clean))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2019 <- read_csv("pbp-2019.csv")
+
+as.numeric(pbp_2019$Minute)
+as.numeric(pbp_2019$Second)
+pbp<-pbp_2019%>%
+mutate(m= ((Minute*60)+Second)/60) %>%
+mutate(TimeLeftInQ=m) %>%
+  filter(IsPenalty == 0) %>%
+mutate(TimeinGame = ifelse(Quarter == 1, 15-m,ifelse(Quarter == 2, 30-m,ifelse(Quarter == 3, 45-m, 60-m))))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2019$Rush<-as.numeric(pbp_2019$IsRush)
+pbp_2019$GOff<-paste(pbp_2019$GameDate, pbp_2019$OffenseTeam)
+game<-pbp_2019 %>%
+  group_by(GameDate,OffenseTeam,DefenseTeam, GameId) %>%
+  summarise(Rushes=sum(Rush),Passes=sum(IsPass), win=sum(TeamWin), FirstDown=sum(SeriesFirstDown), sacks=sum(IsSack),Interception=sum(IsInterception), Fumbles=sum(IsFumble),incomplete=sum(IsIncomplete), TDs=sum(IsTouchdown),twopoint = sum(IsTwoPointConversionSuccessful), yards = sum(Yards), N=n())
+
+mean(game$FirstDown)
+  
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+games <- read_csv("http://www.habitatring.com/games.csv")
+g2019<-games %>%
+  filter(season == 2019)
+ g2019$GameId <- g2019$old_game_id 
+game19 <- game %>%
+  full_join(g2019, by = "GameId") 
+
+
+game19<-game19 %>%
+  mutate(S=ifelse(OffenseTeam == home_team, 1, 0)) %>%
+ mutate(DidWin = ifelse(S == 1 & result > 0 , 1, ifelse(S == 0 & result < 0, 1, 0) ) )
+```
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game19$IsHome<-game19$S
+game19 <- game19 %>%
+  mutate(score = ifelse(IsHome == 1, home_score , away_score)) %>%
+    mutate(QB = ifelse(IsHome == 1, home_qb_name,  away_qb_name)) %>%
+  mutate(coach = ifelse(IsHome == 1, home_coach,  away_coach))%>%
+   mutate(Team = ifelse(IsHome == 1, home_team,  away_team)) %>%
+  mutate(favorby = ifelse(IsHome == 1, spread_line,   spread_line*-1)) %>%
+  mutate(opponent = ifelse(IsHome == 1, away_team,   home_team)) %>%
+    mutate(opponentScore = ifelse(IsHome == 1, away_score,   home_score)) %>%
+  mutate(RatioPasstoRush = Passes/Rushes)
+```
+
+
+
+
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_small9<- game19 %>%
+  group_by(GameDate, Team, opponent) %>%
+  summarise(Team, Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score,favorby, QB, coach, roof, surface,gametime, week, weekday, GameDate, gametime, RatioPasstoRush,opponentScore)
+game_clean_2<-game_small9 %>%
+   na.omit()
+x<-as.data.frame(rbind(game_clean_2,x))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+x<-x%>%
+  mutate(Team=ifelse(Team == "SD", "LAC" ,Team)) %>%
+  mutate(Team=ifelse(Team == "OAK", "LV" ,Team))%>%
+  mutate(surface=ifelse(surface == "grass","grass", "artificial"))
+write.csv(x, "Train.csv")
+```
+
+# test data
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2021 <- read_csv("pbp-2016.csv")
+names(pbp_2021)
+as.numeric(pbp_2021$Minute)
+as.numeric(pbp_2021$Second)
+pbp<-pbp_2021%>%
+mutate(m= ((Minute*60)+Second)/60) %>%
+mutate(TimeLeftInQ=m) %>%
+  filter(IsPenalty == 0) %>%
+mutate(TimeinGame = ifelse(Quarter == 1, 15-m,ifelse(Quarter == 2, 30-m,ifelse(Quarter == 3, 45-m, 60-m))))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2021$Rush<-as.numeric(pbp_2021$IsRush)
+pbp_2021$GOff<-paste(pbp_2021$GameDate, pbp_2021$OffenseTeam)
+game<-pbp_2021 %>%
+  group_by(GameDate,OffenseTeam,DefenseTeam, GameId) %>%
+  summarise(Rushes=sum(Rush),Passes=sum(IsPass), win=sum(TeamWin), FirstDown=sum(SeriesFirstDown), sacks=sum(IsSack),Interception=sum(IsInterception), Fumbles=sum(IsFumble),incomplete=sum(IsIncomplete), TDs=sum(IsTouchdown),twopoint = sum(IsTwoPointConversionSuccessful), yards = sum(Yards), N=n())
+
+mean(game$FirstDown)
+  
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+games <- read_csv("http://www.habitatring.com/games.csv")
+g2021<-games %>%
+  filter(season == 2016)
+ g2021$GameId <- g2021$old_game_id 
+game21 <- game %>%
+  full_join(g2021, by = "GameId") 
+
+
+game21<-game21 %>%
+  mutate(S=ifelse(OffenseTeam == home_team, 1, 0)) %>%
+ mutate(DidWin = ifelse(S == 1 & result > 0 , 1, ifelse(S == 0 & result < 0, 1, 0) ) )
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game21$IsHome<-game21$S
+
+game21 <- game21 %>%
+  mutate(score = ifelse(IsHome == 1, home_score , away_score)) %>%
+    mutate(QB = ifelse(IsHome == 1, home_qb_name,  away_qb_name)) %>%
+  mutate(coach = ifelse(IsHome == 1, home_coach,  away_coach))%>%
+   mutate(Team = ifelse(IsHome == 1, home_team,  away_team)) %>%
+  mutate(favorby = ifelse(IsHome == 1, spread_line,   spread_line*-1)) %>%
+  mutate(opponent = ifelse(IsHome == 1, away_team,   home_team)) %>%
+    mutate(opponentScore = ifelse(IsHome == 1, away_score,   home_score)) %>%
+  mutate(RatioPasstoRush = Passes/Rushes)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_small<- game21 %>%
+  group_by(GameDate, Team, opponent) %>%
+  summarise(Team, Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score, favorby, QB, coach, roof, surface,gametime, week, weekday, GameDate, gametime, RatioPasstoRush, opponentScore)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_clean<-game_small %>%
+   na.omit()
+```
+
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2020 <- read_csv("pbp-2017.csv")
+names(pbp_2020)
+as.numeric(pbp_2020$Minute)
+as.numeric(pbp_2020$Second)
+pbp<-pbp_2020%>%
+mutate(m= ((Minute*60)+Second)/60) %>%
+mutate(TimeLeftInQ=m) %>%
+  filter(IsPenalty == 0) %>%
+mutate(TimeinGame = ifelse(Quarter == 1, 15-m,ifelse(Quarter == 2, 30-m,ifelse(Quarter == 3, 45-m, 60-m))))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2020$Rush<-as.numeric(pbp_2020$IsRush)
+pbp_2020$GOff<-paste(pbp_2020$GameDate, pbp_2020$OffenseTeam)
+game<-pbp_2020 %>%
+  group_by(GameDate,OffenseTeam,DefenseTeam, GameId) %>%
+  summarise(Rushes=sum(Rush),Passes=sum(IsPass), win=sum(TeamWin), FirstDown=sum(SeriesFirstDown), sacks=sum(IsSack),Interception=sum(IsInterception), Fumbles=sum(IsFumble),incomplete=sum(IsIncomplete), TDs=sum(IsTouchdown),twopoint = sum(IsTwoPointConversionSuccessful), yards = sum(Yards), N=n())
+
+mean(game$FirstDown)
+  
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+games <- read_csv("http://www.habitatring.com/games.csv")
+g2020<-games %>%
+  filter(season == 2017)
+ g2020$GameId <- g2020$old_game_id 
+game20 <- game %>%
+  full_join(g2020, by = "GameId") 
+
+
+game20<-game20 %>%
+  mutate(S=ifelse(OffenseTeam == home_team, 1, 0)) %>%
+ mutate(DidWin = ifelse(S == 1 & result > 0 , 1, ifelse(S == 0 & result < 0, 1, 0) ) )
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game20$IsHome<-game20$S
+
+game20 <- game20 %>%
+  mutate(score = ifelse(IsHome == 1, home_score , away_score)) %>%
+    mutate(QB = ifelse(IsHome == 1, home_qb_name,  away_qb_name)) %>%
+  mutate(coach = ifelse(IsHome == 1, home_coach,  away_coach))%>%
+   mutate(Team = ifelse(IsHome == 1, home_team,  away_team)) %>%
+  mutate(favorby = ifelse(IsHome == 1, spread_line,   spread_line*-1)) %>%
+  mutate(opponent = ifelse(IsHome == 1, away_team,   home_team)) %>%
+    mutate(opponentScore = ifelse(IsHome == 1, away_score,   home_score)) %>%
+  mutate(RatioPasstoRush = Passes/Rushes)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_small2<- game20 %>%
+  group_by(GameDate, Team, opponent) %>%
+  summarise(Team, Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score,favorby, QB, coach, roof, surface,gametime, week, weekday, GameDate, gametime, RatioPasstoRush,opponentScore)
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_clean_2<-game_small2 %>%
+   na.omit()
+y<-as.data.frame(rbind(game_clean_2, game_clean))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2019 <- read_csv("pbp-2018.csv")
+
+as.numeric(pbp_2019$Minute)
+as.numeric(pbp_2019$Second)
+pbp<-pbp_2019%>%
+mutate(m= ((Minute*60)+Second)/60) %>%
+mutate(TimeLeftInQ=m) %>%
+  filter(IsPenalty == 0) %>%
+mutate(TimeinGame = ifelse(Quarter == 1, 15-m,ifelse(Quarter == 2, 30-m,ifelse(Quarter == 3, 45-m, 60-m))))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+pbp_2019$Rush<-as.numeric(pbp_2019$IsRush)
+pbp_2019$GOff<-paste(pbp_2019$GameDate, pbp_2019$OffenseTeam)
+game<-pbp_2019 %>%
+  group_by(GameDate,OffenseTeam,DefenseTeam, GameId) %>%
+  summarise(Rushes=sum(Rush),Passes=sum(IsPass), win=sum(TeamWin), FirstDown=sum(SeriesFirstDown), sacks=sum(IsSack),Interception=sum(IsInterception), Fumbles=sum(IsFumble),incomplete=sum(IsIncomplete), TDs=sum(IsTouchdown),twopoint = sum(IsTwoPointConversionSuccessful), yards = sum(Yards), N=n())
+
+mean(game$FirstDown)
+  
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+games <- read_csv("http://www.habitatring.com/games.csv")
+g2019<-games %>%
+  filter(season == 2018)
+ g2019$GameId <- g2019$old_game_id 
+game19 <- game %>%
+  full_join(g2019, by = "GameId") 
+
+
+game19<-game19 %>%
+  mutate(S=ifelse(OffenseTeam == home_team, 1, 0)) %>%
+ mutate(DidWin = ifelse(S == 1 & result > 0 , 1, ifelse(S == 0 & result < 0, 1, 0) ) )
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game19$IsHome<-game19$S
+game19 <- game19 %>%
+  mutate(score = ifelse(IsHome == 1, home_score , away_score)) %>%
+    mutate(QB = ifelse(IsHome == 1, home_qb_name,  away_qb_name)) %>%
+  mutate(coach = ifelse(IsHome == 1, home_coach,  away_coach))%>%
+   mutate(Team = ifelse(IsHome == 1, home_team,  away_team)) %>%
+  mutate(favorby = ifelse(IsHome == 1, spread_line,   spread_line*-1)) %>%
+  mutate(opponent = ifelse(IsHome == 1, away_team,   home_team)) %>%
+    mutate(opponentScore = ifelse(IsHome == 1, away_score,   home_score)) %>%
+  mutate(RatioPasstoRush = Passes/Rushes)
+```
+
+
+
+
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+game_small9<- game19 %>%
+  group_by(GameDate, Team, opponent) %>%
+  summarise(Team, Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score,favorby, QB, coach, roof, surface,gametime, week, weekday, GameDate, gametime, RatioPasstoRush,opponentScore)
+game_clean_2<-game_small9 %>%
+   na.omit()
+y<-as.data.frame(rbind(game_clean_2,y))
+```
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+y<-y%>%
+  mutate(Team=ifelse(Team == "SD", "LAC" ,Team)) %>%
+  mutate(Team=ifelse(Team == "OAK", "LV" ,Team))%>%
+  mutate(surface=ifelse(surface == "grass","grass", "artificial"))
+write.csv(y, "test.csv")
+```
+
+
+# cluster data
+
+```{r,warning=FALSE,message=FALSE,results='hide'}
+
+Games20and21<-rbind(x)
+clustdata<- Games20and21 %>%
+  group_by(Team) %>%
+  summarise(MPasstoRush=mean(RatioPasstoRush), MPasses=mean(Passes), MPasses=mean(Rushes), MTD= mean(TDs), MScore = mean(score), Rushes=sum(Rushes),  Passes=sum(Passes), Wins = sum(DidWin), favorby=mean(favorby), opponentScore=mean(opponentScore), meanYards=mean(yards),meanFirstDowns=mean(FirstDown) , MeanOffplays=mean(N))
+
+write_csv(clustdata, "clust.csv")
+```
+

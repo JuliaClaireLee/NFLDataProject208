@@ -1,0 +1,41 @@
+---
+title: "Neural Network"
+author: "Julia Lee"
+date: "5/9/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+#install.packages("nflreadr")
+library(nflreadr)
+library(nflfastR)
+library(readr)
+library(dplyr)
+library(MASS)
+library(dplyr)
+library(readr)
+library(nloptr)
+library(e1071)
+library(ISLR)
+library(caret)
+library(nnet)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(tree)
+library(class)
+```
+
+```{r}
+train <- read_csv("train.csv")
+test <-train[15016:30030,]
+train<-train[1:15015,]
+```
+
+```{r}
+set.seed(109)
+
+
+```

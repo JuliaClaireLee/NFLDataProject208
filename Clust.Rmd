@@ -1,0 +1,168 @@
+---
+title: "Clustering"
+author: "Julia Lee"
+date: "5/19/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(dplyr)
+library(ISLR)
+library(cluster)
+library(flashClust)
+library(factoextra)
+library(ape)
+library(ggdendro)
+library(dendextend)
+library(ggplot2)
+#install.packages('kohonen') 
+library(gplots)
+library(kohonen)
+library(circlize)
+library(tidyverse)
+```
+
+```{r}
+clust <- read_csv("clust.csv")
+```
+
+# Hclust
+
+```{r}
+
+dist.map <- dist(clust)
+hclustavg <- hclust(dist.map,method= "complete")
+labels(hclustavg) <- clust$Team
+p1<-plot(hclustavg)
+p1
+ggdendrogram(hclustavg, rotate = FALSE, size = 2) + labs(title = "complete Linkage")
+```
+```{r}
+p<-cutree(hclustavg,k=6)
+s<-silhouette(p,dist.map)
+plot(s)
+
+p<-cutree(hclustavg,k=5)
+s<-silhouette(p,dist.map)
+plot(s)
+
+p<-cutree(hclustavg,k=4)
+s<-silhouette(p,dist.map)
+plot(s)
+
+p<-cutree(hclustavg,k=3)
+s<-silhouette(p,dist.map)
+plot(s)
+s3<-mean(s[,3])
+p<-cutree(hclustavg,k=2)
+s<-silhouette(p,dist.map)
+plot(s)
+s2<-mean(s[,3])
+```
+```{r}
+x = c()
+y = c(2:10)
+N <- 10
+for (k in 2:N) {
+ p<-cutree(hclustavg,k=k)
+ s<-silhouette(p,dist.map)
+ S<-mean(s[,3])
+ x<-append(x,S)
+}
+d<-cbind(y,x)
+plot(d, type = "line")
+```
+
+
+
+so 7 is the best number of clusters for complete Linkage using the silhouette diagram
+
+
+```{r}
+ggdendrogram(hclustavg, rotate = FALSE, size = 2)  + labs(title = "complete Linkage")
+```
+
+```{r}
+
+dend<-as.dendrogram(hclustavg)%>%
+  color_branches(k=7)
+
+
+plot(dend)
+```
+#heat map
+
+```{r}
+mycol <- colorRampPalette(c("lightblue","blue","darkblue"))(12)
+C<-clust[,2:13]
+c<-data.matrix(C)
+rownames(c) <- clust$Team
+
+heatmap.2(c, col=mycol, trace="none",scale="column",cexCol =0.65 ,margins=c(7,5))
+```
+
+```{r}
+set.seed(100)
+x = c()
+y = c(2:10)
+N <- 10
+dist.map<-dist(C)
+for (k in 2:N) {
+ p<-kmeans(C, centers = k, nstart = 25)
+ s<-silhouette(p$cluster,C)
+ S<-mean(s[,3])
+ x<-append(x,S)
+}
+d<-cbind(y,x)
+plot(d, type = "line")
+```
+
+```{r}
+
+fviz_nbclust(c, kmeans, method='silhouette')
+distance <- get_dist(c)
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
+
+
+
+```{r}
+k<-kmeans(c, centers = 6,nstart = 100)
+fviz_cluster(k, data = c)
+```
+
+```{r}
+SOM<-som(c,grid=somgrid(2,3,topo="hexagonal"),rlen=1000)
+
+fitted<-SOM$unit.classif
+
+wts<-SOM$codes
+
+
+plot(SOM,type="codes")
+
+coords<-SOM$grid$pts
+text(coords,labels=seq(1,6))
+
+
+plot(SOM,type="counts")
+ 
+
+plot(SOM,type="quality")
+
+coolBlue.hotRed<-colorRampPalette(c("blue","cyan","green","yellow","red"))
+
+plot(SOM,type="counts",palette.name=coolBlue.hotRed,ncolors=20)
+coords<-SOM$grid$pts
+text(coords,labels=seq(1,6))
+```
+
+```{r}
+par(bg = rgb(0,0.5,0.5), font = 1, pch = 16, pch = 16, cex = 0.85)
+plot(SOM,type="mapping",labels = rownames(c), cex.lab = 0.85,
+     main = "NFL Team mapping", cex.main = 5.4)
+text(coords,labels=seq(1,6), col = "blue")
+```
+

@@ -1,0 +1,460 @@
+---
+title: Code appendix
+author: Julia Lee
+output: pdf_document 
+    
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(float)
+library(devtools)
+source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+library(kableExtra)
+library(clusterGeneration)
+#> Loading required package: MASS
+library(tictoc)
+library(dplyr)
+library(MASS)
+library(dplyr)
+library(DT)
+library(readr)
+library(nloptr)
+library(e1071)
+library(ISLR)
+library(GGally)
+library(caret)
+library(nnet)
+library(rpart)
+library(MASS)
+library(dplyr)
+library(ISLR)
+library(cluster)
+library(flashClust)
+library(factoextra)
+library(ape)
+library(ggdendro)
+library(dendextend)
+library(ggplot2)
+#install.packages("klaR") 
+library(klaR)
+library(gplots)
+library(kohonen)
+library(circlize)
+library(rpart.plot)
+library(rattle)
+library(tree)
+library(class)
+library(randomForest)
+library(readr)
+library(readxl)
+library(wordcloud)
+library(ggplot2)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(e1071)
+library(gridExtra)
+library(class)
+library(ISLR)
+library(dplyr)
+library(nnet)
+```
+
+```{r global_options, eval=FALSE, include=FALSE}
+knitr::opts_chunk$set(fig.pos = "!h")
+```
+
+```{r, eval =FALSE}
+library(readr)
+library(float)
+library(devtools)
+source_url
+('https://gist.githubusercontent.com/fawda123/7471137/raw/466c14
+  74d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+
+library(kableExtra)
+library(clusterGeneration)
+library(tictoc)
+library(dplyr)
+library(MASS)
+library(dplyr)
+library(DT)
+library(readr)
+library(nloptr)
+library(e1071)
+library(ISLR)
+library(GGally)
+library(caret)
+library(nnet)
+library(rpart)
+library(MASS)
+library(dplyr)
+library(ISLR)
+library(cluster)
+library(flashClust)
+library(factoextra)
+library(ape)
+library(ggdendro)
+library(dendextend)
+library(ggplot2)
+#install.packages("klaR") 
+library(klaR)
+library(gplots)
+library(kohonen)
+library(circlize)
+library(rpart.plot)
+library(rattle)
+library(tree)
+library(class)
+library(randomForest)
+library(readr)
+library(readxl)
+library(ggplot2)
+library(tm)
+library(e1071)
+library(gridExtra)
+library(class)
+library(ISLR)
+library(dplyr)
+library(nnet)
+```
+
+
+```{r,warning = FALSE, message=FALSE}
+train1 <- read_csv("train.csv")
+test1 <- read_csv("test.csv")
+```
+
+   
+```{r,echo=FALSE,warning = FALSE, message=FALSE}
+train <- read_csv("train.csv")
+test <- read_csv("test.csv")
+train1<- train %>%
+  summarise(Team,Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint, yards ,N, IsHome, score,favorby, roof, surface,RatioPasstoRush)
+train1$DidWin<-as.factor(train1$DidWin)
+train1$IsHome<-as.factor(train1$IsHome)
+test1<- test %>%
+  summarise(Team,Rushes,Passes, DidWin, FirstDown, sacks,Interception, Fumbles,incomplete, TDs,twopoint  , yards ,N, IsHome, score,favorby, roof, surface,  RatioPasstoRush)
+test1$IsHome<-as.factor(test1$IsHome)
+train1$DidWin<-as.factor(train1$DidWin)
+```
+ 
+# Data: 
+
+ 
+```{r}
+head(test1)
+head(train1)
+```
+
+
+
+
+
+
+##   Decision Tree:
+
+
+
+
+ 
+
+```{r, eval=FALSE, warning = FALSE, message=FALSE, fig.cap="CV plot to find number of nodes"}
+set.seed(10064)
+mod1<-tree(DidWin~.,data=train1, method = "class")
+cv_mod1 = cv.tree(mod1)
+#plot(cv_mod1$size, cv_mod1$dev, type = 'b')
+fittree2<-rpart(DidWin~.,train1,method="class")
+plotcp(fittree2)
+```
+
+
+
+
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE, fig.cap="Decision Tree"}
+fittree2<-rpart(DidWin~.,train1,method="class")
+rpart.plot(fittree2,extra=104)
+
+```
+
+ 
+
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE}
+tree_pred = predict(fittree2, test1, type="class")
+table(tree_pred, test1$DidWin) %>%
+  kbl(caption = "confusion Table of Classification Tree") %>%
+  kable_styling()
+```
+
+
+
+
+
+
+
+
+
+  
+##   Random Forest: 
+
+ 
+ 
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE, eval=FALSE}
+
+m1 <- randomForest(
+  formula = DidWin~.,
+  data    = train1,
+   mtry = 20, importance = TRUE)
+
+random_forest_estimate = predict(m1, 
+                                 newdata = test1)
+
+```
+
+```{r, eval=FALSE,fig.cap="OOB error of random forest"}
+plot(m1)
+```
+
+
+```{r, eval=FALSE, eval=FALSE, warning = FALSE, message=FALSE, eval=FALSE}
+importance(m1)
+```
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE}
+varImpPlot(m1, main = "Random Forest")
+```
+
+
+
+```{r,eval=FALSE,warning = FALSE, message=FALSE,eval=FALSE}
+table(random_forest_estimate, test1$DidWin)%>%
+kbl(caption = "random_forest_estimate") %>%
+  kable_styling()
+
+```
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+  
+## Discriminant analysis 
+
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE}
+
+
+ggpairs(train1[,-1])
+```
+
+### LDA:
+
+
+
+
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE, eval=FALSE}
+model_LDA = lda(DidWin~., data = train1)
+predictions_LDA = data.frame(predict(model_LDA, test1))
+GMeans<-model_LDA$means 
+GMeans<-t(GMeans)
+GMeans%>%
+  kbl(caption = "Group Means of Training Data") %>%
+  kable_styling()
+
+```
+
+
+
+
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE}
+model_LDA = lda(DidWin~., data = train1)
+predictions_LDA = data.frame(predict(model_LDA, test1))
+coeff<-model_LDA$scaling 
+
+coeff<-coeff[32:50,]
+
+coeff%>%
+  kbl(caption = "coefficients of linear discriminants output") %>%
+  kable_styling()
+
+```
+
+
+```{r, eval=FALSE, warning = FALSE, message=FALSE}
+predictions_LDA = cbind(test, predictions_LDA)
+
+LDA<-predictions_LDA %>%
+  count(class, DidWin) %>%
+  kbl(caption = "LDA prediction Table") %>%
+  kable_styling()
+LDA
+```
+
+
+ 
+###  QDA:
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE}
+model_QDA = qda(DidWin~., data = train1)
+predictions_QDA = data.frame(predict(model_QDA, test1))
+
+predictions_QDA = cbind(test, predictions_QDA)
+
+Q<-predictions_QDA %>%
+  count(class, DidWin) %>%
+  kbl(caption = "QDA prediction Table") %>%
+  kable_styling()
+Q
+```
+
+
+ 
+ 
+
+```{r, eval=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(109)
+minval<-1e10
+lam<-0.2
+for (k in 1:100) {
+  init<-runif(12,-0.7,0.7)
+fitnn<-nnet(class.ind(DidWin)~.,train1,size=2,decay=lam,entropy=TRUE,maxit=5000,wts=init)
+ if (fitnn$value<minval) {
+minval<-fitnn$value
+fitnn.save<-fitnn
+} 
+}
+```
+
+##  Neural Network
+
+
+```{r, eval=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+
+plot.nnet(fitnn.save, cex.val = 0.5 )
+
+```
+
+
+```{r,  eval=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+k<-test1[,-4]
+class.predict<-predict(fitnn.save,k,type="class") 
+```
+
+
+
+```{r,  eval=FALSE, eval=FALSE, warning=FALSE, message=FALSE}
+correct<-(test1$DidWin==class.predict)
+n<-length(correct[correct== TRUE])
+(1-(n/1530))*100
+```
+
+
+
+# Clustering
+
+
+
+```{r,eval=FALSE, warning = FALSE, message=FALSE, fig.cap="Distance Plot"}
+clust <- read_csv("clust.csv")
+C<-clust[,2:13]
+c<-data.matrix(C)
+rownames(c) <- clust$Team
+distance <- get_dist(c)
+fviz_dist(distance, gradient = list(low = "#FFFFFF", mid = "#00AFBB", high = "#000066"))
+```
+
+
+##  Hierarchical Clustering:
+
+
+
+```{r Finding the opitmal number of clusters  for dendrogram using avg width,eval=FALSE,,warning = FALSE, message=FALSE}
+dist.map <- dist(clust)
+hclustavg <- hclust(dist.map,method= "complete")
+labels(hclustavg) <- clust$Team
+
+
+x = c()
+y = c(2:10)
+N <- 10
+for (k in 2:N) {
+ p<-cutree(hclustavg,k=k)
+ s<-silhouette(p,dist.map)
+ S<-mean(s[,3])
+ x<-append(x,S)
+}
+d<-cbind(y,x)
+plot(d, type = "line")
+```
+
+
+```{r Dendro,eval=FALSE,,warning = FALSE, message=FALSE, fig.cap="NFL Team Dendrogram, K = 7"}
+dend<-as.dendrogram(hclustavg)%>%
+  color_branches(k=7)
+plot(dend)
+```
+
+
+
+```{r Heat map,eval=FALSE ,warning = FALSE, message=FALSE,, fig.cap="NFL Team Heat Map"}
+set.seed(100)
+mycol <- colorRampPalette(c("lightblue","blue","darkblue"))(12)
+C<-clust[,2:13]
+c<-data.matrix(C)
+rownames(c) <- clust$Team
+
+heatmap.2(c, col=mycol, trace="none",scale="column",cexCol =0.65 ,margins=c(7,5))
+```
+ 
+##  K-means:
+
+
+
+
+```{r k-means silhouette, eval=FALSE, warning = FALSE, message=FALSE, fig.cap="using Shilouette width to find opitmal number of clusters for k means"}
+
+fviz_nbclust(c, kmeans, method='silhouette')
+
+```
+
+
+
+```{r k-means,eval=FALSE, warning = FALSE, message=FALSE, fig.cap="K means, k = 6"}
+set.seed(100)
+k<-kmeans(c, centers = 6,nstart = 100)
+fviz_cluster(k, data = c)
+```
+
+
+## Self-organizing Maps:
+
+ 
+ 
+```{r SOM, eval=FALSE, warning = FALSE, message=FALSE}
+SOM<-som(c,grid=somgrid(2,3,topo="hexagonal"),rlen=1000)
+coords<-SOM$grid$pts
+par(bg = rgb(0.9,0.94,0.95), font = 1, pch = 16, pch = 16, cex = 0.75)
+plot(SOM,type="mapping",labels = rownames(c), cex.lab = 0.65,
+     main = "NFL Team mapping", cex.main = 5.4)
+text(coords,labels=seq(1,6), col = "blue")
+
+```
+
