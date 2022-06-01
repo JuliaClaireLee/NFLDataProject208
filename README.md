@@ -1,5 +1,12 @@
 # NFL Data Project
 
+This repository was created as the code/data appendix of a paper written for STAT 208 
+
+
+# Data:
+The Data is game data for all 32 NFL teams from 2016 - 2021 (3454 observations). The data being used for training the classification methods and clustering in the game data from 2019 - 2021 (1924 observations) and the test data is game data for teams from 2016 - 2018 (1530 observations). The data was collected by merging aggregate [play by play data by teams](http://nflsavant.com/about.php) and [publicly available game data](http://www.habitatring.com/standings.csv) 
+
+
 # Acknowledgments:
 
 
