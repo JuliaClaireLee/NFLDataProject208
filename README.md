@@ -1,6 +1,5 @@
 # NFL Data Project
 
-
 # Acknowledgments:
 
 
